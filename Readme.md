@@ -1,29 +1,23 @@
 # Skylight
 
-Still Experimental.
+The (Experimental!) Skylight library simplifies the construction of real-time collections.
 
 [![Build Status](https://travis-ci.org/ben-ng/skylight.png?branch=master)](https://travis-ci.org/ben-ng/skylight)
 
-## Philosophy
+## Core Values
 
-The Skylight library simplifies the construction of real-time Backbone Collections. These collections provide a view of the data you care about as it changes.
+Real-time collections are difficult to do well unless you have your priorities set straight.
 
-## Typical Architecture
+In order of importance, here are the goals of Skylight:
 
-```text
+1. Correctness
 
-CouchDB
-|
-couchwatch (or other database watcher)
-|
-v             (belongs/fetch) Collection
-Skylight    ->(belongs/fetch) Collection  On the server side, Skylight responds to subscriptions from the client
-^             (belongs/fetch) Collection  by creating collections and using them to fetch data from the db
-|
-socket.io (or whatever)
-|
-v           <- (belongs) Collection
-Skylight    <- (belongs) Collection  The client's Skylight simply mirrors its counterpart on the server
-            <- (belongs) Collection  and collections keep themselves up to date by subscribing to it
+Skylight is a thin but bulletproof interface you between your database and client.
 
-```
+2. Simplicity
+
+Simplicity allows consumers of Skylight to create understandable and well behaved collections.
+
+3. Performance
+
+Without compromising on correctness or simplicity, Skylight is *fast*.
