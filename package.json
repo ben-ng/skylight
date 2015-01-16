@@ -1,0 +1,30 @@
+{
+  "name": "skylight",
+  "version": "0.0.0",
+  "description": "Realtime windows into your data",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ben-ng/skylight.git"
+  },
+  "keywords": [
+    "realtime",
+    "data"
+  ],
+  "author": "Ben Ng <me@benng.me>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ben-ng/skylight/issues"
+  },
+  "homepage": "https://github.com/ben-ng/skylight",
+  "devDependencies": {
+    "lodash": "^2.4.1",
+    "tape": "^3.2.0"
+  },
+  "dependencies": {
+    "backbone": "^1.1.2"
+  }
+}
