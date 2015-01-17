@@ -21,3 +21,135 @@ Simplicity allows consumers of Skylight to create understandable and well behave
 3. Performance
 
 Without compromising on correctness or simplicity, Skylight is *fast*.
+
+## Nomenclature
+
+The `Skylight` class is an extension of `Backbone.Collection`. Think of `Skylight` as a window into your data. Whereas normal Backbone collections change when you call methods like `add` and `sync`, `Skylight` collections only change when your database changes, and cannot be manipulated by the client.
+
+A pair of Manager instances are required. One goes on the server, and the other on the client. They are named `ServerManager` and `ClientManager` respectively. The job of the Managers is to bridge the communication gap between server and client. `Skylight` instances *must* be initialized with a Manager.
+
+## API
+
+### ServerManager
+
+The `ServerManager` requires more parameters than the `ClientManger` because it has to communicate with your database.
+
+```js
+var serverManager = new ServerManager(
+    {
+      db: db              // Passed directly to your collections to use, Skylight is backend agnostic
+
+    , dbFeed: feed        // Must be an EventEmitter that emits 'change' events
+                          // when a record changes, passing the record as the first argument
+
+    , context: context    // Passed directly to your collections to use, useful for storing user
+                          // roles and permissions so you can use them in filters
+
+    , manifest: manifest  // A map of Skylight collections like {CustomCollection: require('./collections/custom')}
+    })
+
+serverManager.setClientFeed(socket) // Socket must be an EventEmitter that emits ClientManager events
+```
+
+### ClientManager
+
+The `ClientManager` is simple to set up because it simply reflects what the `ServerManager` sees on the server.
+
+```js
+
+var clientManager = new ClientManager(
+    {
+      serverFeed: socket // Socket must be an EventEmitter that emits ServerManager events
+    })
+
+```
+
+### Skylight
+
+`Skylight` uses progressive enhancement to give users some control over how simple or performant they want their collections to be.
+
+#### The Minimum Collection
+
+`Skylight` subclasses require at minimum:
+
+1. An `_id` property that uniquely identifies this type of collection
+2. A `_fetch` method that gets the data for the collection
+
+```js
+Skylight.extend({
+  _id: 'Users'
+
+, _fetch: function (db, context, cb) {
+
+    // `Skylight` does not care what db adapter or backend you use
+    // (the db object is whatever you constructed the `ServerManager` with)
+    db.query('SELECT * FROM `users`', function (err, data) {
+
+      // If nothing went wrong, call cb with an array of plain objects
+      if(err)
+        return cb(err)
+      else
+        return cb(null, data)
+
+    })
+  }
+})
+```
+
+I was verbose with the above example so I could explain the data that the `_fetch` callback expects. In reality, your simplest collections would look similar to this:
+
+```js
+Skylight.extend({
+  _id: 'Users'
+, _fetch: function (db, context, cb) {
+    db.query('SELECT * FROM `users`', cb)
+  }
+})
+```
+
+#### Incremental Updates
+
+Instead of performing a fetch for every change, you can implement an optional `_onChange` method that is called each time the `ServerManager`'s `dbFeed` emits a `change` event.
+
+You can get very creative with your `_onChange` method, but here is a typical one that has logic for adding, editing, and removing models.
+
+```js
+Skylight.extend({
+  _id: 'Users'
+
+, _fetch: function (db, context, cb) {
+    db.query('SELECT * FROM `users`', cb)
+  }
+
+  // `doc` is the `dbFeed` `change` event's first argument
+  // here we'll assume that `doc` is a plain object like {id: 'joe', type: 'user'}
+, _onChange: function (doc, db, context, cb) {
+
+    // Find an existing model with this id
+    var existing = this.get(doc.id)
+
+    // If the document is already in the collection
+    if(existing != null) {
+
+      // If the document is deleted, remove it
+      if(doc.deleted) {
+        this.remove(existing)
+      }
+      // Otherwise, update the model's attributes
+      else {
+        existing.set(doc)
+      }
+
+    }
+    // If this document is not yet in the collection, but belongs in it, add it in
+    else if(existing.type == 'user') {
+      this.add(doc)
+    }
+
+    // When done manipulating the collection, call this to flush the changes to the client
+    cb()
+  }
+})
+```
+
+As you can see, there is a sharp trade-off between simplicity and performance.

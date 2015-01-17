@@ -11,7 +11,9 @@ module.exports = Collection.extend({
   initialize: function (models, opts) {
     var self = this
 
-    this.options = opts || {}
+    opts = opts || {}
+
+    this.options = opts
 
     if(!this._fetch) { throw new Error('Universal Collections must have a _fetch method') }
     if(!this.belongs) { throw new Error('Universal Collections must have a belongs method') }
