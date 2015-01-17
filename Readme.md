@@ -37,18 +37,24 @@ The `ServerManager` requires more parameters than the `ClientManger` because it 
 ```js
 var serverManager = new ServerManager(
     {
-      db: db              // Passed directly to your collections to use, Skylight is backend agnostic
+      // Passed directly to your collections to use. Backend Agnostic!
+      db: db
 
-    , dbFeed: feed        // Must be an EventEmitter that emits 'change' events
-                          // when a record changes, passing the record as the first argument
+      // Must be an EventEmitter that emits 'change' events
+      // when a record changes, passing the record as the first argument
+    , dbFeed: feed
 
-    , context: context    // Passed directly to your collections to use, useful for storing user
-                          // roles and permissions so you can use them in filters
+      // Passed directly to your collections to use, useful for storing user
+      // roles and permissions so you can use them in filters
+    , context: context
 
-    , manifest: manifest  // A map of Skylight collections like {CustomCollection: require('./collections/custom')}
+      // A map of Skylight collections like:
+      // {CustomCollection: require('./collections/custom')}
+    , manifest: manifest
     })
 
-serverManager.setClientFeed(socket) // Socket must be an EventEmitter that emits ClientManager events
+// Socket must be an EventEmitter that emits ClientManager events
+serverManager.setClientFeed(socket)
 ```
 
 ### ClientManager
@@ -59,7 +65,8 @@ The `ClientManager` is simple to set up because it simply reflects what the `Ser
 
 var clientManager = new ClientManager(
     {
-      serverFeed: socket // Socket must be an EventEmitter that emits ServerManager events
+      // Socket must be an EventEmitter that emits ServerManager events
+      serverFeed: socket
     })
 
 ```
@@ -141,15 +148,43 @@ Skylight.extend({
       }
 
     }
-    // If this document is not yet in the collection, but belongs in it, add it in
+    // If the document is not already in the collection, add it if it belongs
     else if(existing.type == 'user') {
       this.add(doc)
     }
 
-    // When done manipulating the collection, call this to flush the changes to the client
+    // When done manipulating the collection, call `cb` to flush changes
     cb()
   }
 })
 ```
 
-As you can see, there is a sharp trade-off between simplicity and performance.
+Take a little time to understand the annotated example above. The `_onChange` method is a powerful and unopinionated way to perform incremental updates -- even asynchronous ones!
+
+Since incremental updates are inherently more tricky to get right, here is the above example without the annotations so that you can use it as a template:
+
+```js
+Skylight.extend({
+  _id: 'Users'
+
+, _fetch: function (db, context, cb) {
+    db.query('SELECT * FROM `users`', cb)
+  }
+
+, _onChange: function (doc, db, context, cb) {
+    var existing = this.get(doc.id)
+
+    if(existing != null) {
+      if(doc.deleted)
+        this.remove(existing)
+      else
+        existing.set(doc)
+    }
+    else if(doc.type == 'user') {
+      this.add(doc)
+    }
+
+    cb()
+  }
+})
+```
