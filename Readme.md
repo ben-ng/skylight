@@ -12,7 +12,7 @@ In order of importance, here are the goals of Skylight:
 
 1. Correctness
 
-  Skylight is a thin but bulletproof interface you between your database and client.
+  Skylight is a thin but bulletproof interface between your database and client.
 
 2. Simplicity
 
