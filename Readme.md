@@ -24,9 +24,9 @@ In order of importance, here are the goals of Skylight:
 
 ## Nomenclature
 
-The `Skylight` class is an extension of `Backbone.Collection`. Think of `Skylight` as a window into your data. Whereas normal Backbone collections change when you call methods like `add` and `sync`, `Skylight` collections only change when your database changes, and cannot be manipulated by the client.
+The `Skylight` class is an extension of `Backbone.Collection`. Think of `Skylight` as a window into your data -- you can see your data, but you can't change it. Whereas normal Backbone collections change when you call methods like `add` and `sync`, `Skylight` collections only change when your database changes.
 
-A pair of Manager instances are required. One goes on the server, and the other on the client. They are named `ServerManager` and `ClientManager` respectively. The job of the Managers is to bridge the communication gap between server and client. `Skylight` instances *must* be initialized with a Manager.
+A pair of Manager instances are required. One goes on the server, and the other on the client. They are named `ServerManager` and `ClientManager` respectively. The job of the Managers is to bridge the communication gap between server and client.
 
 ## API
 
