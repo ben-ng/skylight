@@ -87,7 +87,8 @@ ClientManager.prototype.onSubscribed = function onSubscribed (err, collection, o
   if(!targetSubscription)
     throw new Error('The subscription ' + collection + ':' + JSON.stringify(_.omit(opts, 'manager')) +
                     ' was not found in ' + this.subscriptions.length + ' subscriptions:\n' +
-                    _.pluck(this.subscriptions, 'options').join('\n'))
+                    _.map(this.subscriptions, function (t) {return JSON.stringify(_.omit(t.options, 'manager'))}).join('\n'))
+
 
   targetSubscription._finishedLoading(err)
 }
