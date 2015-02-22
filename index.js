@@ -12,8 +12,12 @@ var Backbone = require('backbone')
 module.exports = Collection.extend({
   initialize: function (models, opts) {
     var self = this
+      , tempManager
 
     opts = opts || {}
+    tempManager = opts.manager
+    opts = _.omit(opts, 'manager')
+    Object.freeze(opts)
 
     this.options = opts
 
@@ -21,11 +25,11 @@ module.exports = Collection.extend({
     if(!this.belongs) { throw new Error('Universal Collections must have a belongs method') }
     if(!this._id) { throw new Error('Universal Collections must be extended with an _id property') }
     if(models != null && models.length) { throw new Error('Universal Collections can not be initialized with any models') }
-    if(!(opts.manager instanceof ServerManager) && !(opts.manager instanceof ClientManager)) {
+    if(!(tempManager instanceof ServerManager) && !(tempManager instanceof ClientManager)) {
       throw new Error('Universal Collections must be initialized with a manager')
     }
 
-    this.manager = opts.manager
+    this.manager = tempManager
 
     if(typeof this.afterInit == 'function') {
       this.afterInit(_.omit(opts, 'manager'))
