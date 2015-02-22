@@ -97,14 +97,18 @@ ClientManager.prototype.setClientFeed = function setClientFeed () {
   throw new Error('Only the server can have a clientFeed')
 }
 
+ClientManager.prototype.find = function (collectionId, opts) {
+  return _.find(this.subscriptions, function (subscription) {
+    return subscription._id == collectionId && _.isEqual(_.omit(subscription.options, 'manager'), _.omit(opts, 'manager'))
+  })
+}
+
 ClientManager.prototype.subscribe = function subscribe (collection, opts) {
   if(typeof collection != 'object' || typeof collection._id != 'string' || opts == null) {
     throw new Error('Subscribe should be called with (Collection, Options) on the client')
   }
 
-  var oldSubscription = _.find(this.subscriptions, function (subscription) {
-    return subscription._id == collection._id && _.isEqual(_.omit(subscription.options, 'manager'), _.omit(opts, 'manager'))
-  })
+  var oldSubscription = this.find(collection._id, opts)
 
   if(oldSubscription != null) {
     throw new Error('Cannot subscribe to a duplicate collection')
