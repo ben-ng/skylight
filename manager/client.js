@@ -103,6 +103,20 @@ ClientManager.prototype.find = function (collectionId, opts) {
   })
 }
 
+ClientManager.prototype.create = function (Collection, opts) {
+  var existingCollection = this.find(Collection.prototype._id, opts)
+
+  opts = _.clone(opts)
+  opts.manager = this
+
+  if(existingCollection) {
+    return existingCollection
+  }
+  else {
+    return new Collection(null, opts)
+  }
+}
+
 ClientManager.prototype.subscribe = function subscribe (collection, opts) {
   if(typeof collection != 'object' || typeof collection._id != 'string' || opts == null) {
     throw new Error('Subscribe should be called with (Collection, Options) on the client')
