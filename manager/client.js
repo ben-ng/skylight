@@ -1,5 +1,6 @@
 var _ = require('lodash')
   , util = require('util')
+  , normalize = require('json-stable-stringify')
   , constants = require('./constants')
   , Base = require('./base')
 
@@ -99,7 +100,7 @@ ClientManager.prototype.setClientFeed = function setClientFeed () {
 
 ClientManager.prototype.find = function (collectionId, opts) {
   return _.find(this.subscriptions, function (subscription) {
-    return subscription._id == collectionId && _.isEqual(_.omit(subscription.options, 'manager'), _.omit(opts, 'manager'))
+    return subscription._id == collectionId && normalize(subscription.options) == normalize(opts)
   })
 }
 

@@ -25,6 +25,7 @@
     "tape": "^3.2.0"
   },
   "dependencies": {
-    "backbone": "^1.1.2"
+    "backbone": "^1.1.2",
+    "json-stable-stringify": "^1.0.0"
   }
 }

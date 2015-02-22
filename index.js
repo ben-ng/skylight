@@ -16,9 +16,18 @@ module.exports = Collection.extend({
 
     opts = opts || {}
     tempManager = opts.manager
+
+    // Don't save the manager in the options object
     opts = _.omit(opts, 'manager')
+
+    // This ensures that everything is serializable
+    // No magic like prototypes and setters/getters
+    opts = JSON.parse(JSON.stringify(opts))
+
+    // Make it immutable
     Object.freeze(opts)
 
+    // Save it in a private var
     this._options = opts
 
     if(!this._fetch) { throw new Error('Universal Collections must have a _fetch method') }
