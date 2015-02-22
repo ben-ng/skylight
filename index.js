@@ -5,6 +5,8 @@ var Backbone = require('backbone')
   , Collection = Backbone.Collection
   , IdAttrModel = Backbone.Model.extend({idAttribute: '_id'})
   , constants = require('./manager/constants')
+  , ClientManager = require('./manager/client')
+  , ServerManager = require('./manager/server')
   , _ = require('lodash')
 
 module.exports = Collection.extend({
@@ -19,10 +21,14 @@ module.exports = Collection.extend({
     if(!this.belongs) { throw new Error('Universal Collections must have a belongs method') }
     if(!this._id) { throw new Error('Universal Collections must be extended with an _id property') }
     if(models != null && models.length) { throw new Error('Universal Collections can not be initialized with any models') }
-    if(!opts.manager) { throw new Error('Universal Collections must be initialized with a manager') }
+    if(!(opts.manager instanceof ServerManager) && !(opts.manager instanceof ClientManager)) {
+      throw new Error('Universal Collections must be initialized with a manager')
+    }
+
+    this.manager = opts.manager
 
     if(typeof this.afterInit == 'function') {
-      this.afterInit(opts)
+      this.afterInit(_.omit(opts, 'manager'))
     }
 
     this._loadedCallbacks = []
@@ -41,7 +47,7 @@ module.exports = Collection.extend({
     this._makeAtomic('setOptions')
 
     // The public fetch method is only used on the client, and sends the subscribe event to the server
-    if(opts.manager.type == constants.TYPE_CLIENT) {
+    if(this.manager.type == constants.TYPE_CLIENT) {
       this.fetch(function noop () {})
     }
   }
@@ -143,23 +149,23 @@ module.exports = Collection.extend({
   // Override the default backbone fetch method
 , fetch: function (cb) {
     this._isLoading = true
-    this.options.manager.subscribe(this, _.omit(this.options, 'manager'))
+    this.manager.subscribe(this, _.omit(this.options, 'manager'))
     this.loaded(function () {
       cb()
     })
   }
 , unsubscribe: function () {
-    this.options.manager.unsubscribe(this)
+    this.manager.unsubscribe(this)
   }
 , setOptions: function (newOpts, cb) {
-    if(this.options.manager.type != constants.TYPE_CLIENT) {
+    if(this.manager.type != constants.TYPE_CLIENT) {
       throw new Error('Only client collections are permitted to change their options after initialization')
     }
 
     this._isLoading = true
 
     var oldOpts = _.omit(this.options, 'manager')
-    this.options = _.extend({}, newOpts, {manager: this.options.manager})
+    this.options = _.extend({}, newOpts, {manager: this.manager})
 
     this.trigger('ucollection:change', this, oldOpts, _.omit(newOpts, 'manager'))
 
