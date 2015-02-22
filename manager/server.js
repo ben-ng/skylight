@@ -110,7 +110,7 @@ ServerManager.prototype._onOptionsChange = function _onOptionsChange (collection
   })
 
   if(targetSubscription != null) {
-    targetSubscription.options = _.extend({}, newOpts, {manager: self})
+    targetSubscription._options = newOpts
 
     targetSubscription._fetch(this.options.db, this.options.context, function (err, docs) {
       if(err) {

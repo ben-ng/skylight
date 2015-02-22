@@ -19,7 +19,7 @@ module.exports = Collection.extend({
     opts = _.omit(opts, 'manager')
     Object.freeze(opts)
 
-    this.options = opts
+    this._options = opts
 
     if(!this._fetch) { throw new Error('Universal Collections must have a _fetch method') }
     if(!this.belongs) { throw new Error('Universal Collections must have a belongs method') }
@@ -41,6 +41,13 @@ module.exports = Collection.extend({
 
     this.__defineGetter__('isLoading', function () {
       return self._isLoading
+    })
+
+    this.__defineGetter__('options', function () {
+      return self._options
+    })
+    this.__defineSetter__('options', function () {
+      throw new Error('Use .setOptions if you need to change collection options')
     })
 
     this._atomicFunctionQueue = []
@@ -169,7 +176,7 @@ module.exports = Collection.extend({
     this._isLoading = true
 
     var oldOpts = _.omit(this.options, 'manager')
-    this.options = _.extend({}, newOpts, {manager: this.manager})
+    this._options = _.extend({}, newOpts, {manager: this.manager})
 
     this.trigger('ucollection:change', this, oldOpts, _.omit(newOpts, 'manager'))
 
