@@ -71,6 +71,16 @@ var clientManager = new ClientManager(
 
 ```
 
+#### Instance Methods
+
+##### ClientManager.create(CollectionConstructor, optionsObject)
+
+The `create` method returns a collection with the specified options. If a duplicate collection already exists, you will get an identical instance. Otherwise, a new instance will be returned.
+
+```js
+var myInstance = clientManager.create(MyCollection, {option: 'a'})
+```
+
 ### Skylight
 
 `Skylight` uses progressive enhancement to give users some control over how simple or performant they want their collections to be.
@@ -191,7 +201,7 @@ Skylight.extend({
 
 #### Instance Methods
 
-##### Instance.loaded
+##### Skylight.loaded
 
 The loaded method calls the callback when the collection is done retrieving its initial payload.
 
@@ -202,7 +212,7 @@ instance.loaded(function (err, inst) {
 })
 ```
 
-##### Instance.setOptions
+##### Skylight.setOptions
 
 This method allows you to change the options of a collection on-the-fly. The callback is called after the options have been set, and the new data has loaded.
 
