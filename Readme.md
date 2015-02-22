@@ -12,15 +12,15 @@ In order of importance, here are the goals of Skylight:
 
 1. Correctness
 
-  Skylight is a thin but bulletproof interface between your database and client.
+    Skylight is a thin but bulletproof interface between your database and client.
 
 2. Simplicity
 
-  Simplicity allows consumers of Skylight to create understandable and well behaved collections.
+    Simplicity allows consumers of Skylight to create understandable and well behaved collections.
 
 3. Performance
 
-  Without compromising on correctness or simplicity, Skylight is *fast*.
+    Without compromising on correctness or simplicity, Skylight is *fast*.
 
 ## Nomenclature
 
@@ -186,5 +186,29 @@ Skylight.extend({
 
     cb()
   }
+})
+```
+
+#### Instance Methods
+
+##### Instance.loaded
+
+The loaded method calls the callback when the collection is done retrieving its initial payload.
+
+```js
+instance.loaded(function (err, inst) {
+  // err is an Error if there was a problem
+  // inst is the collection instance that loaded. in this case, thats `instance`.
+})
+```
+
+##### Instance.setOptions
+
+This method allows you to change the options of a collection on-the-fly. The callback is called after the options have been set, and the new data has loaded.
+
+```js
+instance.setOptions({}, function (err, inst) {
+  // err is an Error if there was a problem
+  // inst is the collection instance that finished loading. in this case, thats `instance`.
 })
 ```
