@@ -218,6 +218,9 @@ ServerManager.prototype.subscribe = function subscribe (collection, opts) {
   // Need to put this in a try because people throw in their constructors during option validation
   try {
     collectionInstance = new this.options.manifest[collection](null, _.extend({}, opts, {manager: this}))
+
+    // Don't sort on the server!
+    collectionInstance.comparator = null
   }
   catch(e) {
     console.error('Error subscribing: ' + e)
