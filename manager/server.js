@@ -12,9 +12,11 @@ function ServerManager (opts) {
 
   var self = this
 
-  opts.dbFeed.on('row', function (row) {
+  this.rowChangeListener = function (row) {
     self.onFeedChange(row.doc)
-  })
+  }
+
+  opts.dbFeed.on('row', this.rowChangeListener)
 
   this._onOptionsChange = _.bind(this._onOptionsChange, this)
 }
@@ -308,7 +310,7 @@ ServerManager.prototype.destroy = function destroy () {
     this.options.clientFeed = null
   }
   if(this.options.dbFeed) {
-    this.options.dbFeed.off()
+    this.options.dbFeed.removeListener('row', this.rowChangeListener)
     this.options.dbFeed = null
   }
 
@@ -316,11 +318,7 @@ ServerManager.prototype.destroy = function destroy () {
     subscription.destroy()
   })
 
-  this.each(function (model) {
-    model.destroy()
-  })
-
-  this.off()
+  this.removeAllListeners()
 }
 
 module.exports = ServerManager
