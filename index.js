@@ -8,6 +8,8 @@ var Backbone = require('backbone')
   , ClientManager = require('./manager/client')
   , ServerManager = require('./manager/server')
   , _ = require('lodash')
+  , stable_stringify = require('json-stable-stringify')
+  , crypto = require('crypto-browserify')
 
 module.exports = Collection.extend({
   initialize: function (models, opts) {
@@ -31,7 +33,6 @@ module.exports = Collection.extend({
     this._options = opts
 
     if(!this._fetch) { throw new Error('Universal Collections must have a _fetch method') }
-    if(!this.belongs) { throw new Error('Universal Collections must have a belongs method') }
     if(!this._id) { throw new Error('Universal Collections must be extended with an _id property') }
     if(models != null && models.length) { throw new Error('Universal Collections can not be initialized with any models') }
     if(!(tempManager instanceof ServerManager) && !(tempManager instanceof ClientManager)) {
@@ -48,6 +49,14 @@ module.exports = Collection.extend({
     this._isLoading = false
     this._loadedError = null
 
+    this.__defineGetter__('type', function () {
+      if(!self._type) {
+        self._type = self._getType()
+      }
+
+      return self._type
+    })
+
     this.__defineGetter__('isLoading', function () {
       return self._isLoading
     })
@@ -55,6 +64,7 @@ module.exports = Collection.extend({
     this.__defineGetter__('options', function () {
       return self._options
     })
+
     this.__defineSetter__('options', function () {
       throw new Error('Use .setOptions if you need to change collection options')
     })
@@ -72,6 +82,10 @@ module.exports = Collection.extend({
     }
   }
 , model: IdAttrModel
+, _getType: function _getType() {
+    var identifierObj = stable_stringify({id: this._id, opts: this.options})
+    return crypto.createHash('md5').update(identifierObj, 'utf8').digest('hex')
+  }
 , _makeAtomic: function _makeAtomic(propertyName) {
     var self = this
       , nonAtomicPropertyName = '_nonatomic_' + propertyName

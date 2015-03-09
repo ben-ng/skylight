@@ -66,7 +66,7 @@ test('universal-collection:mocks', function (t) {
 })
 
 test('universal-collection:subscribing from client', function (t) {
-  t.plan(14)
+  t.plan(17)
 
   // Now, initialize a collection on the client side
   clientManager.once('subscribe', function (id, opts) {
@@ -80,12 +80,14 @@ test('universal-collection:subscribing from client', function (t) {
     t.deepEqual(opts, {substring: 'Semicolons'}, 'Server model cache should have emitted `subscribe` with the collection options')
   })
 
-  serverManager.once('send', function (doc) {
+  serverManager.once('send', function (identifier, doc) {
+    t.equal(identifier, 'bfc5b1764111fe45099d523036e0709f', 'identifier should match')
     t.deepEqual(doc, {_id: 'user:chris', name: 'Destroyer of Semicolons'}, 'Should have sent the matching Chris doc')
     t.equal(bikerCollection.length, 1, 'There should be one doc in the client')
 
     // Now save something to couch that matches the condition, and see if it got sent to the client
-    serverManager.once('send', function (doc) {
+    serverManager.once('send', function (identifier, doc) {
+      t.equal(identifier, 'bfc5b1764111fe45099d523036e0709f', 'identifier should match')
       t.deepEqual(doc, jon, 'Should have sent the matching Jon doc')
       t.equal(bikerCollection.length, 2, 'There should be two docs in the client')
 
@@ -93,8 +95,9 @@ test('universal-collection:subscribing from client', function (t) {
       serverCouch.save(cristi)
 
       // Now change a model so it gets removed from the collection
-      serverManager.once('send', function (doc) {
-        t.deepEqual(doc, jon, 'Should have sent the matching Jon doc')
+      serverManager.once('delete', function (identifier, doc) {
+        t.equal(identifier, 'bfc5b1764111fe45099d523036e0709f', 'identifier should match')
+        t.deepEqual(doc, { _deleted: true, _id: 'user:jon' }, 'Should have removed the matching Jon doc')
         t.equal(bikerCollection.length, 1, 'There should be one doc in the client')
 
         bikerCollection.loaded(function () {
@@ -128,7 +131,7 @@ test('universal-collection:correctness of multiple collections', function (t) {
   * send: kevin
   */
 
-  t.plan(8)
+  t.plan(9)
 
   var count = 0
     ,  finishListener
@@ -160,9 +163,11 @@ test('universal-collection:correctness of multiple collections', function (t) {
           t.ok(kickassPeople.find(function (t) {return t.id == 'user:chris'}), 'Chris is a kickass')
 
           serverManager.removeListener('send', finishListener)
+          serverManager.removeListener('delete', finishListener)
 
-          serverManager.once('delete', function (docid) {
-            t.deepEqual(docid, chris._id, 'Should delete the chris doc')
+          serverManager.once('delete', function (identifier, doc) {
+            t.equal(identifier, 'ca48e01ce89ae01819dbded9ac77b3fc', 'identifier should match')
+            t.deepEqual(doc, { _deleted: true, _id: 'user:chris' }, 'Should delete the chris doc')
 
             kickassPeople.loaded(function () {
               this.destroy()
@@ -180,6 +185,7 @@ test('universal-collection:correctness of multiple collections', function (t) {
 
       serverManager.removeListener('send', sendListener)
       serverManager.on('send', finishListener)
+      serverManager.on('delete', finishListener)
 
       jon.name = 'English Cowboy'
       dan.name = 'Nomad War-Roomer'
@@ -197,19 +203,24 @@ test('universal-collection:correctness of multiple collections', function (t) {
 test('universal-collection: aggregate collections', function (t) {
   var testCollection
 
-  t.plan(5)
+  t.plan(9)
 
-  serverManager.once('send', function (doc) {
+  serverManager.once('send', function (identifier, doc) {
+    t.equal(identifier, '6c72e2838f5b87944bf6c1a3b961f33e', 'identifier should match')
     t.deepEqual(doc, { members: [ 'user:jon' ], type: 'aggr', _id: 'aggr:Cowboy' }, 'Jon should be the only cowboy')
-    serverManager.once('send', function (doc) {
+
+    serverManager.once('send', function (identifier, doc) {
+      t.equal(identifier, '6c72e2838f5b87944bf6c1a3b961f33e', 'identifier should match')
       t.deepEqual(doc, { members: [ 'user:chris', 'user:kevin' ], type: 'aggr', _id: 'aggr:Kickass' }, 'Kev and Chris should be kickass')
 
       // Try out the onChange method. This should take kevin out of the kickass group.
-      serverManager.once('send', function (doc) {
+      serverManager.once('send', function (identifier, doc) {
+        t.equal(identifier, '6c72e2838f5b87944bf6c1a3b961f33e', 'identifier should match')
         t.deepEqual(doc, { members: [ 'user:chris' ], type: 'aggr', _id: 'aggr:Kickass' }, 'Kevin should no longer be kickass')
 
-        serverManager.once('delete', function (doc) {
-          t.equal(doc._id, 'aggr:Kickass', 'The Kickass derived model should have been deleted')
+        serverManager.once('delete', function (identifier, doc) {
+          t.equal(identifier, '6c72e2838f5b87944bf6c1a3b961f33e', 'identifier should match')
+          t.deepEqual(doc, {_deleted: true, _id: 'aggr:Kickass'}, 'The Kickass derived model should have been deleted')
 
           testCollection.loaded(function () {
             testCollection.destroy()
@@ -233,16 +244,19 @@ test('universal-collection: aggregate collections', function (t) {
 test('universal-collection: changing options of an existing collection', function (t) {
   var testCollection
 
-  t.plan(4)
+  t.plan(7)
 
-  serverManager.once('send', function (doc) {
+  serverManager.once('send', function (identifier, doc) {
+    t.equal(identifier, '723e32c16c4ec565b0313c3fdd6dcba9', 'identifier should match')
     t.deepEqual(doc, { members: [ 'user:jon' ], type: 'aggr', _id: 'aggr:Cowboy' }, 'Jon should be the only cowboy')
 
-    serverManager.once('delete', function (doc) {
-      t.equal(doc._id, 'aggr:Cowboy', 'The Cowboy derived model should have been deleted')
+    serverManager.once('delete', function (identifier, doc) {
+      t.equal(identifier, '723e32c16c4ec565b0313c3fdd6dcba9', 'identifier should match')
+      t.deepEqual(doc, {_id: 'aggr:Cowboy', _deleted: true}, 'The Cowboy derived model should have been deleted')
     })
 
-    serverManager.once('send', function (doc) {
+    serverManager.once('send', function (identifier, doc) {
+      t.equal(identifier, '723e32c16c4ec565b0313c3fdd6dcba9', 'identifier should match')
       t.deepEqual(doc, { members: [ 'user:chris' ], type: 'aggr', _id: 'aggr:Portland' }, 'Chris should be Portland')
     })
 

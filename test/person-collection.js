@@ -23,9 +23,6 @@ PersonCollection = UniversalCollection.extend({
       }))
     }, 0)
   }
-  , belongs: function (doc) {
-      return doc.name && doc.name.indexOf(this.options.substring) > -1
-    }
 })
 
 module.exports = PersonCollection

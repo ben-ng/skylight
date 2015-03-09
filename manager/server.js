@@ -33,37 +33,50 @@ ServerManager.prototype.onFeedChange = function onFeedChange (doc) {
       return
     }
 
-    var existingModel = collection.get(doc._id)
-
-    // Deleted docs should always be deleted
-    if(existingModel && (doc.deleted || doc._deleted)) {
-      collection.remove(existingModel)
-      self.emit('delete', doc._id)
-      return
-    }
-
-    // Basic collections or advanced collections on the client behave the same way
+    // Collections without an onChange method just _fetch every time
     if(!collection.onChange) {
-      if(collection.belongs(doc)) {
-        if(existingModel) {
-          _.each(doc, function (value, key) {
-            existingModel.set(key, value)
-          })
+      collection._fetch(self.options.db, self.options.context, function (err, docs) {
+        if(err) {
+          return self.emit('error', err, collection._id, collection.options)
         }
-        else {
-          collection.add(doc, {sort: false})
-        }
-      }
-      else if(existingModel) {
-        // Merge in attributes silently...
-        // this is critical otherwise the doc won't be emitted with the new attrs
-        _.each(doc, function (value, key) {
-          existingModel.set(key, value, {silent: true})
+
+        var doc_ids = []
+
+        _.each(docs, function (doc) {
+          var existingModel = collection.find(doc._id)
+
+          if((typeof collection.belongs != 'function' || collection.belongs(doc)) && !doc._deleted) {
+            doc_ids.push(doc._id)
+
+            if(existingModel) {
+              _.each(doc, function (value, key) {
+                existingModel.set(key, value)
+              })
+            }
+            else {
+              collection.add(doc, {sort: false})
+            }
+          }
+          else if(existingModel) {
+            // Merge in attributes silently...
+            // this is critical otherwise the doc won't be emitted with the new attrs
+            _.each(doc, function (value, key) {
+              existingModel.set(key, value, {silent: true})
+            })
+
+            // Then delete it
+            collection.remove(existingModel)
+          }
         })
 
-        // Then delete it
-        collection.remove(existingModel)
-      }
+        // Remove things in the collection that aren't in docs anymore
+        collection.each(function (model) {
+          if(model && doc_ids.indexOf(model.id) < 0)
+            collection.remove(model)
+        })
+
+        self.flushEvents()
+      })
     }
     // Advanced collections on the server behave differently
     else {
@@ -162,7 +175,7 @@ ServerManager.prototype.bufferEvent = function bufferEvent (eventname, model, co
         this._eventBuffer[model.id] = {type: eventname, order: this._eventCounter, model: model, collection: collection}
         break
       case 'remove':
-        this._eventBuffer[model.id] = {type: 'delete', order: this._eventCounter, model: model, collection: collection}
+        this._eventBuffer[model.id] = {type: 'remove', order: this._eventCounter, model: model, collection: collection}
         break
     }
   }
@@ -183,20 +196,12 @@ ServerManager.prototype.flushEvents = function flushEvents () {
   })
 
   _.each(events, function (eventDetails) {
-    var eventType
-
-    if((eventDetails.type == 'add' || eventDetails.type == 'change') && !(eventDetails.model.get('deleted') || eventDetails.model.get('_deleted'))) {
-      eventType = 'send'
+    if((eventDetails.type == 'add' || eventDetails.type == 'change') && !eventDetails.model.get('_deleted')) {
+      self.emit('send', eventDetails.collection.type, eventDetails.model.toJSON())
     }
     else {
-      eventType = 'delete'
-      eventDetails.model.set('_deleted', true)
+      self.emit('delete', eventDetails.collection.type, {_id: eventDetails.model.id, _deleted: true})
     }
-
-    if(!eventDetails.collection || typeof eventDetails.collection.isVisible != 'function' || eventDetails.collection.isVisible(eventDetails.model, self.options.context)) {
-      self.emit(eventType, eventDetails.model.toJSON())
-    }
-
   })
 }
 
@@ -236,26 +241,17 @@ ServerManager.prototype.subscribe = function subscribe (collection, opts) {
   }
 
   // Derived collections are really smart and know the difference!
-  if(collectionInstance.onChange) {
-    collectionInstance.on('add', function (model) {
-      self.bufferEvent('add', model, collectionInstance)
-    })
-    collectionInstance.on('change', function (model) {
-      self.bufferEvent('change', model, collectionInstance)
-    })
-    // Since a model is in this collection IFF it has this unique type, we can delete it for good.
-    // It will not be in any other collection!
-    collectionInstance.on('remove', function (model) {
-      self.bufferEvent('remove', model, collectionInstance)
-    })
-  }
-  // Normal collections can't be that smart yet, and everything is treated as a change.
-  // No garbage collection! Sad D:
-  else {
-    collectionInstance.on('add remove change', function (model) {
-      self.bufferEvent('change', model)
-    })
-  }
+  collectionInstance.on('add', function (model) {
+    self.bufferEvent('add', model, collectionInstance)
+  })
+  collectionInstance.on('change', function (model) {
+    self.bufferEvent('change', model, collectionInstance)
+  })
+  // Since a model is in this collection IFF it has this unique type, we can delete it for good.
+  // It will not be in any other collection!
+  collectionInstance.on('remove', function (model) {
+    self.bufferEvent('remove', model, collectionInstance)
+  })
 
   collectionInstance._fetch(this.options.db, this.options.context, function (err, docs) {
     if(err) {
@@ -264,7 +260,7 @@ ServerManager.prototype.subscribe = function subscribe (collection, opts) {
     }
     else {
       _.each(docs, function (doc) {
-        collectionInstance.add(doc, {merge: true, sort: false})
+        collectionInstance.add(doc, {sort: false})
       })
 
       self.flushEvents()

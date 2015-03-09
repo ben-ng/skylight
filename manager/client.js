@@ -13,12 +13,12 @@ function ClientManager (opts) {
 
   var self = this
 
-  opts.serverFeed.on('send', function (doc) {
-    self.onFeedChange(doc)
+  opts.serverFeed.on('send', function (identifier, doc) {
+    self.onFeedChange('send', identifier, doc)
   })
 
-  opts.serverFeed.on('delete', function (doc) {
-    self.onFeedChange(doc)
+  opts.serverFeed.on('delete', function (identifier, doc) {
+    self.onFeedChange('delete', identifier, doc)
   })
 
   opts.serverFeed.on('subscribed', function (err, collection, options) {
@@ -32,25 +32,22 @@ util.inherits(ClientManager, Base)
 
 ClientManager.prototype.type = constants.TYPE_CLIENT
 
-ClientManager.prototype.onFeedChange = function onFeedChange (doc) {
+ClientManager.prototype.onFeedChange = function onFeedChange (eventType, identifier, doc) {
   var self = this
     , needsSort = []
+    , collection = _.find(this.subscriptions, function (c) { return c.type == identifier })
 
-  _.each(this.subscriptions, function (collection) {
-    if(collection == null) {
-      return
-    }
-
+  if(collection) {
     var existingModel = collection.get(doc._id)
 
     // Deleted docs should always be deleted
-    if(existingModel && (doc.deleted || doc._deleted)) {
+    if(existingModel && doc._deleted) {
       collection.remove(existingModel)
       self.emit('delete', doc._id)
       return
     }
 
-    if(collection.belongs(doc)) {
+    if(eventType == 'send') {
       if(existingModel) {
         _.each(doc, function (value, key) {
           existingModel.set(key, value)
@@ -64,20 +61,13 @@ ClientManager.prototype.onFeedChange = function onFeedChange (doc) {
         needsSort.push(collection)
     }
     else if(existingModel) {
-      // Merge in attributes silently...
-      // this is critical otherwise the doc won't be emitted with the new attrs
-      _.each(doc, function (value, key) {
-        existingModel.set(key, value, {silent: true})
-      })
-
       // Then delete it
       collection.remove(existingModel)
     }
-  })
-
-  _.each(needsSort, function (collection) {
-    collection.sort()
-  })
+  }
+  else {
+    console.error('Feed event for nonexistent collection identifier: ' + identifier)
+  }
 }
 
 ClientManager.prototype.onSubscribed = function onSubscribed (err, collection, opts) {
