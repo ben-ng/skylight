@@ -260,7 +260,8 @@ ServerManager.prototype.subscribe = function subscribe (collection, opts) {
     }
     else {
       _.each(docs, function (doc) {
-        collectionInstance.add(doc, {sort: false})
+        if(typeof collectionInstance.belongs != 'function' || collectionInstance.belongs(doc))
+          collectionInstance.add(doc, {sort: false})
       })
 
       self.flushEvents()
