@@ -222,6 +222,10 @@ ServerManager.prototype.subscribe = function subscribe (collection, opts) {
       , opts)
   }
 
+  // No need to subscribe to a duplicate collection
+  if(this.find(collection, opts) != null)
+    return
+
   // Need to put this in a try because people throw in their constructors during option validation
   try {
     collectionInstance = new this.options.manifest[collection](null, _.extend({}, opts, {manager: this}))

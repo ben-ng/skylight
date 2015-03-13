@@ -1,6 +1,5 @@
 var _ = require('lodash')
   , util = require('util')
-  , normalize = require('json-stable-stringify')
   , constants = require('./constants')
   , Base = require('./base')
 
@@ -86,12 +85,6 @@ ClientManager.prototype.onSubscribed = function onSubscribed (err, collection, o
 
 ClientManager.prototype.setClientFeed = function setClientFeed () {
   throw new Error('Only the server can have a clientFeed')
-}
-
-ClientManager.prototype.find = function (collectionId, opts) {
-  return _.find(this.subscriptions, function (subscription) {
-    return subscription._id == collectionId && normalize(subscription.options) == normalize(opts)
-  })
 }
 
 ClientManager.prototype.create = function (Collection, opts) {

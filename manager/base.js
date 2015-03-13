@@ -1,5 +1,7 @@
 var EventEmitter = require('events').EventEmitter
   , util = require('util')
+  , _ = require('lodash')
+  , normalize = require('json-stable-stringify')
 
 function Manager (opts) {
   EventEmitter.call(this)
@@ -21,6 +23,12 @@ util.inherits(Manager, EventEmitter)
 
 Manager.prototype.subscriptionCount = function subscriptionCount () {
   return this.subscriptions.length
+}
+
+Manager.prototype.find = function (collectionId, opts) {
+  return _.find(this.subscriptions, function (subscription) {
+    return subscription._id == collectionId && normalize(subscription.options) == normalize(opts)
+  })
 }
 
 module.exports = Manager
